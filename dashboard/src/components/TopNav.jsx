@@ -1,0 +1,53 @@
+import { NavLink } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
+
+function TopNav() {
+    const { theme, toggleTheme } = useTheme()
+
+    return (
+        <nav className="top-nav">
+            <div className="top-nav-inner">
+                <div className="nav-logo">
+                    <span>🧠</span>
+                    <span>AttentionOS</span>
+                </div>
+
+                <ul className="nav-links">
+                    <li>
+                        <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>
+                            Dashboard
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink to="/timeline" className={({ isActive }) => isActive ? 'active' : ''}>
+                            Timeline
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink to="/sessions" className={({ isActive }) => isActive ? 'active' : ''}>
+                            Sessions
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink to="/analytics" className={({ isActive }) => isActive ? 'active' : ''}>
+                            Analytics
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink to="/settings" className={({ isActive }) => isActive ? 'active' : ''}>
+                            Settings
+                        </NavLink>
+                    </li>
+                </ul>
+
+                <div className="nav-actions">
+                    <button className="theme-toggle" onClick={toggleTheme}>
+                        {theme === 'light' ? '🌙' : '☀️'}
+                    </button>
+                </div>
+            </div>
+        </nav>
+    )
+}
+
+export default TopNav
