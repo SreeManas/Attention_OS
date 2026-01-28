@@ -1,14 +1,79 @@
 import { useEffect, useState } from 'react'
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { motion, AnimatePresence } from 'framer-motion'
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { fetchSessions } from '../utils/api'
 import { formatTime } from '../utils/helpers'
-import StatCard from '../components/StatCard'
-import ChartCard from '../components/ChartCard'
-import LoadingSkeleton from '../components/LoadingSkeleton'
+import FocusPulse from '../components/FocusPulse'
+import SessionWrap from '../components/SessionWrap'
+import EmptyState from '../components/EmptyState'
+import AchievementShelf from '../components/AchievementShelf'
+
+// Animated counter component
+function AnimatedNumber({ value, suffix = '' }) {
+    const [displayValue, setDisplayValue] = useState(0)
+
+    useEffect(() => {
+        const target = parseFloat(value) || 0
+        const duration = 1500
+        const steps = 60
+        const increment = target / steps
+        let current = 0
+
+        const timer = setInterval(() => {
+            current += increment
+            if (current >= target) {
+                setDisplayValue(target)
+                clearInterval(timer)
+            } else {
+                setDisplayValue(current)
+            }
+        }, duration / steps)
+
+        return () => clearInterval(timer)
+    }, [value])
+
+    return <>{Math.round(displayValue)}{suffix}</>
+}
+
+
+
+// Insight card with emotion
+function InsightCard({ emoji, text, detail, delay = 0 }) {
+    return (
+        <motion.div
+            className="insight-card"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+            <div className="insight-emoji">{emoji}</div>
+            <div className="insight-text">{text}</div>
+            {detail && <div className="insight-detail">{detail}</div>}
+        </motion.div>
+    )
+}
+
+// Stat card with animation
+function StatCard({ icon, value, label, delay = 0 }) {
+    return (
+        <motion.div
+            className="stat-card"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+        >
+            <div className="stat-icon">{icon}</div>
+            <div className="stat-value">{typeof value === 'number' ? <AnimatedNumber value={value} /> : value}</div>
+            <div className="stat-label">{label}</div>
+        </motion.div>
+    )
+}
 
 function Dashboard() {
     const [sessions, setSessions] = useState([])
     const [loading, setLoading] = useState(true)
+    const [showWrap, setShowWrap] = useState(false)
 
     useEffect(() => {
         fetchSessions()
@@ -24,157 +89,252 @@ function Dashboard() {
 
     if (loading) {
         return (
-            <div>
-                <div className="page-header">
-                    <h1 className="page-title">Dashboard</h1>
-                    <p className="page-subtitle">Your productivity overview</p>
-                </div>
-                <div className="stats-grid">
-                    <LoadingSkeleton type="card" />
-                    <LoadingSkeleton type="card" />
-                    <LoadingSkeleton type="card" />
-                </div>
-            </div>
+            <motion.div
+                className="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+            >
+                <div className="loading-spinner" />
+                <p>Analyzing your focus...</p>
+            </motion.div>
         )
     }
 
     if (sessions.length === 0) {
         return (
-            <div>
-                <div className="page-header">
-                    <h1 className="page-title">Dashboard</h1>
-                    <p className="page-subtitle">Your productivity overview</p>
-                </div>
-                <div className="empty-state">
-                    <div className="empty-state-icon">📊</div>
-                    <div className="empty-state-text">No sessions yet. Start the agent to track your activity.</div>
-                </div>
-            </div>
+            <EmptyState
+                icon="🧠"
+                title="Your focus journey starts here"
+                description="Start tracking your first session to discover insights about your productivity patterns and build better focus habits."
+            />
         )
     }
 
     const latestSession = sessions[0]
     const recentSessions = sessions.slice(0, 7).reverse()
 
-    const focusScoreData = recentSessions.map((session, index) => ({
-        name: `${sessions.length - recentSessions.length + index + 1}`,
-        score: session.focus_score
+    // Calculate averages
+    const avgFocusScore = sessions.reduce((sum, s) => sum + s.focus_score, 0) / sessions.length
+    const totalActiveTime = sessions.reduce((sum, s) => sum + s.total_active_seconds, 0)
+
+    // Chart data
+    const focusTrendData = recentSessions.map((session, index) => ({
+        name: `Session ${sessions.length - recentSessions.length + index + 1}`,
+        focus: Math.round(session.focus_score),
+        active: Math.round(session.total_active_seconds / 60),
     }))
 
-    const activeVsIdleData = [
-        { name: 'Active', value: latestSession.total_active_seconds, color: '#6366f1' },
-        { name: 'Idle', value: latestSession.total_idle_seconds, color: '#e5e7eb' }
-    ]
+    // Generate insight text based on data
+    const getInsight = () => {
+        if (latestSession.focus_score >= 80) {
+            return { emoji: '🔥', text: `You were deeply focused for ${formatTime(latestSession.total_active_seconds)}`, detail: 'Exceptional focus session. Keep this momentum!' }
+        } else if (latestSession.focus_score >= 60) {
+            return { emoji: '✨', text: `Good focus session with ${latestSession.app_switches} app switches`, detail: 'Room for improvement, but solid work.' }
+        } else {
+            return { emoji: '💭', text: `High context switching detected (${latestSession.app_switches} switches)`, detail: 'Try blocking distracting apps during deep work.' }
+        }
+    }
+
+    const insight = getInsight()
 
     return (
-        <div>
-            <div className="page-header">
-                <h1 className="page-title">Dashboard</h1>
-                <p className="page-subtitle">Your productivity overview</p>
-            </div>
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+            >
+                {/* Page Header */}
+                <motion.div
+                    className="page-header"
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <div className="page-eyebrow">Today's Overview</div>
+                    <h1 className="page-title">Dashboard</h1>
+                    <p className="page-subtitle">Your focus command center</p>
 
-            <div className="stats-grid">
-                <StatCard
-                    label="Focus Score"
-                    value={`${latestSession.focus_score.toFixed(0)}%`}
-                    isHero
-                />
+                    {/* Demo button to trigger Session Wrap */}
+                    <motion.button
+                        onClick={() => setShowWrap(true)}
+                        className="demo-session-wrap-btn"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                            marginTop: '1rem',
+                            padding: '0.75rem 1.5rem',
+                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)'
+                        }}
+                    >
+                        🎉 Preview Session Wrap
+                    </motion.button>
+                </motion.div>
 
-                <StatCard
-                    label="Active Time"
-                    value={formatTime(latestSession.total_active_seconds)}
-                />
+                {/* HERO: Focus Pulse - The Signature Feature */}
+                <FocusPulse session={latestSession} sessions={sessions} />
 
-                <StatCard
-                    label="Idle Time"
-                    value={formatTime(latestSession.total_idle_seconds)}
-                />
+                {/* Achievement Shelf */}
+                <AchievementShelf sessions={sessions} />
 
-                <StatCard
-                    label="App Switches"
-                    value={latestSession.app_switches}
-                />
-            </div>
+                {/* Insight Card */}
+                <div style={{ marginBottom: '2rem' }}>
+                    <InsightCard
+                        emoji={insight.emoji}
+                        text={insight.text}
+                        detail={insight.detail}
+                        delay={0.4}
+                    />
+                </div>
 
-            <ChartCard title="Focus Score Trend">
-                <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={focusScoreData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
-                        <XAxis dataKey="name" stroke="var(--text-tertiary)" style={{ fontSize: '12px' }} />
-                        <YAxis stroke="var(--text-tertiary)" style={{ fontSize: '12px' }} />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'var(--bg-elevated)',
-                                border: '1px solid var(--border-light)',
-                                borderRadius: '8px',
-                                fontSize: '13px'
-                            }}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="score"
-                            stroke="#6366f1"
-                            strokeWidth={2}
-                            dot={{ r: 4, fill: '#6366f1' }}
-                            activeDot={{ r: 6 }}
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
-            </ChartCard>
+                {/* Stats Grid */}
+                <div className="stats-grid">
+                    <StatCard
+                        icon="⏱️"
+                        value={formatTime(latestSession.total_active_seconds)}
+                        label="Active Time"
+                        delay={0.5}
+                    />
+                    <StatCard
+                        icon="💤"
+                        value={formatTime(latestSession.total_idle_seconds)}
+                        label="Idle Time"
+                        delay={0.6}
+                    />
+                    <StatCard
+                        icon="🔄"
+                        value={latestSession.app_switches}
+                        label="App Switches"
+                        delay={0.7}
+                    />
+                    <StatCard
+                        icon="📊"
+                        value={sessions.length}
+                        label="Total Sessions"
+                        delay={0.8}
+                    />
+                </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                <ChartCard title="Time Distribution">
-                    <ResponsiveContainer width="100%" height={240}>
-                        <PieChart>
-                            <Pie
-                                data={activeVsIdleData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={90}
-                                paddingAngle={2}
-                                dataKey="value"
-                            >
-                                {activeVsIdleData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                formatter={(value) => formatTime(value)}
-                                contentStyle={{
-                                    backgroundColor: 'var(--bg-elevated)',
-                                    border: '1px solid var(--border-light)',
-                                    borderRadius: '8px',
-                                    fontSize: '13px'
-                                }}
+                {/* Focus Trend Chart */}
+                <motion.div
+                    className="chart-card"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.9, duration: 0.5 }}
+                >
+                    <div className="chart-header">
+                        <div>
+                            <div className="chart-title">Focus Score Trend</div>
+                            <div className="chart-subtitle">Last {recentSessions.length} sessions</div>
+                        </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={280}>
+                        <AreaChart data={focusTrendData}>
+                            <defs>
+                                <linearGradient id="focusGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
+                                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <XAxis
+                                dataKey="name"
+                                stroke="rgba(255,255,255,0.2)"
+                                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                                axisLine={false}
+                                tickLine={false}
                             />
-                        </PieChart>
+                            <YAxis
+                                stroke="rgba(255,255,255,0.2)"
+                                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                                axisLine={false}
+                                tickLine={false}
+                                domain={[0, 100]}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: 'rgba(20, 20, 20, 0.95)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '12px',
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                                    fontSize: '13px',
+                                    color: '#fff'
+                                }}
+                                formatter={(value) => [`${value}%`, 'Focus']}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="focus"
+                                stroke="#6366f1"
+                                strokeWidth={2.5}
+                                fill="url(#focusGradient)"
+                            />
+                        </AreaChart>
                     </ResponsiveContainer>
-                </ChartCard>
+                </motion.div>
 
-                <ChartCard title="Recent App Switches">
-                    <ResponsiveContainer width="100%" height={240}>
-                        <BarChart data={recentSessions.map((s, i) => ({
-                            name: `${sessions.length - recentSessions.length + i + 1}`,
-                            switches: s.app_switches
-                        }))}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
-                            <XAxis dataKey="name" stroke="var(--text-tertiary)" style={{ fontSize: '12px' }} />
-                            <YAxis stroke="var(--text-tertiary)" style={{ fontSize: '12px' }} />
+                {/* Activity Chart */}
+                <motion.div
+                    className="chart-card"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 1.0, duration: 0.5 }}
+                >
+                    <div className="chart-header">
+                        <div>
+                            <div className="chart-title">Active Minutes</div>
+                            <div className="chart-subtitle">Time spent focused per session</div>
+                        </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={focusTrendData}>
+                            <XAxis
+                                dataKey="name"
+                                stroke="rgba(255,255,255,0.2)"
+                                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <YAxis
+                                stroke="rgba(255,255,255,0.2)"
+                                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                                axisLine={false}
+                                tickLine={false}
+                            />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: 'var(--bg-elevated)',
-                                    border: '1px solid var(--border-light)',
-                                    borderRadius: '8px',
-                                    fontSize: '13px'
+                                    backgroundColor: 'rgba(20, 20, 20, 0.95)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '12px',
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                                    fontSize: '13px',
+                                    color: '#fff'
                                 }}
+                                formatter={(value) => [`${value} min`, 'Active']}
                             />
-                            <Bar dataKey="switches" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                            <Bar
+                                dataKey="active"
+                                fill="#8b5cf6"
+                                radius={[6, 6, 0, 0]}
+                            />
                         </BarChart>
                     </ResponsiveContainer>
-                </ChartCard>
-            </div>
-        </div>
+                </motion.div>
+            </motion.div>
+
+            {/* Session Wrap Modal */}
+            <SessionWrap
+                session={latestSession}
+                show={showWrap}
+                onClose={() => setShowWrap(false)}
+            />
+        </AnimatePresence>
     )
 }
 

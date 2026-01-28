@@ -1,0 +1,267 @@
+/* Focus Pulse Styles — Apple Aesthetic */
+
+.focus-pulse-container {
+    background: var(--glass-bg);
+    border: var(--border-glass);
+    border-radius: var(--radius-xl);
+    padding: 3rem;
+    margin-bottom: 3rem;
+    backdrop-filter: blur(var(--glass-blur));
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle background glow — very minimal */
+.focus-pulse-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+    opacity: 0.3;
+    filter: blur(100px);
+    pointer-events: none;
+}
+
+.focus-pulse-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.pulse-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-accent);
+    margin-bottom: 0.75rem;
+}
+
+.pulse-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+}
+
+.focus-pulse-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+/* Pulse Orb Container */
+.pulse-orb-container {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    margin: 0 auto;
+}
+
+/* Removed: pulse-orb-ring (no rotating ring) */
+
+/* Removed: pulse-orb-glow (no strong glow) */
+
+/* Main Orb — Glassmorphism sphere */
+.pulse-orb-sphere {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Glassmorphism */
+    background: linear-gradient(135deg,
+            rgba(139, 92, 246, 0.15) 0%,
+            rgba(99, 102, 241, 0.1) 50%,
+            rgba(139, 92, 246, 0.08) 100%);
+    backdrop-filter: blur(40px);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+
+    /* Subtle inner glow */
+    box-shadow:
+        inset 0 0 80px rgba(139, 92, 246, 0.08),
+        inset 0 2px 40px rgba(255, 255, 255, 0.05),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Faint rim light */
+.pulse-orb-sphere::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%,
+            rgba(255, 255, 255, 0.12) 0%,
+            transparent 50%);
+    pointer-events: none;
+}
+
+/* Only on hover — minimal scale */
+.pulse-orb-sphere:hover {
+    transform: scale(1.02);
+}
+
+.pulse-orb-center {
+    text-align: center;
+    z-index: 2;
+    position: relative;
+}
+
+.pulse-orb-value {
+    font-size: 4rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #c4b5fd, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    filter: drop-shadow(0 2px 8px rgba(139, 92, 246, 0.3));
+}
+
+.pulse-orb-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+/* Removed: pulse-orb-cracks (too sci-fi) */
+/* Removed: pulse-particles (too sci-fi) */
+
+/* Pulse Stats Panel */
+.pulse-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.pulse-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pulse-status-emoji {
+    font-size: 2.5rem;
+}
+
+.pulse-status-text {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+}
+
+.pulse-description {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.pulse-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.pulse-metric {
+    padding: 1rem;
+    background: var(--color-surface-overlay);
+    border: var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.pulse-metric-label {
+    font-size: 0.7rem;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.pulse-metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+/* Health Bar */
+.pulse-health-bar {
+    margin-top: 1rem;
+}
+
+.pulse-health-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.pulse-health-bar-track {
+    height: 8px;
+    background: var(--color-surface-overlay);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    border: var(--border-subtle);
+}
+
+.pulse-health-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    position: relative;
+}
+
+.pulse-health-bar-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .focus-pulse-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .pulse-orb-container {
+        width: 220px;
+        height: 220px;
+    }
+
+    .pulse-orb-value {
+        font-size: 3rem;
+    }
+}

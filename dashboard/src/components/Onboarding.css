@@ -1,0 +1,134 @@
+/* Onboarding Styles */
+
+.onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.onboarding-card {
+    background: linear-gradient(135deg, rgba(40, 40, 50, 0.95), rgba(25, 25, 35, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 32px;
+    padding: 4rem 3rem;
+    max-width: 600px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+}
+
+/* Progress Dots */
+.onboarding-progress {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 3rem;
+}
+
+.progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s;
+}
+
+.progress-dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background: var(--color-accent);
+    box-shadow: 0 0 20px var(--color-accent);
+}
+
+.progress-dot.completed {
+    background: rgba(99, 102, 241, 0.5);
+}
+
+/* Content */
+.onboarding-content {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.onboarding-emoji {
+    font-size: 5rem;
+    margin-bottom: 2rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.onboarding-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 1.5rem 0;
+    letter-spacing: -0.03em;
+}
+
+.onboarding-description {
+    font-size: 1.125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    max-width: 450px;
+    margin: 0;
+}
+
+/* Actions */
+.onboarding-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 3rem;
+}
+
+.onboarding-actions .btn-primary,
+.onboarding-actions .btn-secondary {
+    min-width: 140px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .onboarding-card {
+        padding: 3rem 2rem;
+    }
+
+    .onboarding-emoji {
+        font-size: 4rem;
+    }
+
+    .onboarding-title {
+        font-size: 1.5rem;
+    }
+
+    .onboarding-description {
+        font-size: 1rem;
+    }
+
+    .onboarding-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .onboarding-actions button {
+        width: 100%;
+    }
+}

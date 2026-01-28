@@ -5,10 +5,12 @@ import Timeline from './pages/Timeline'
 import Sessions from './pages/Sessions'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
+import Onboarding from './components/Onboarding'
 
 function App() {
   return (
     <div className="app-container">
+      <Onboarding />
       <TopNav />
       <div className="main-content">
         <div className="page-container">

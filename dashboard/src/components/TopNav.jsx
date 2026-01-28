@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useTheme } from '../context/ThemeContext'
 
 function TopNav() {
@@ -6,7 +7,12 @@ function TopNav() {
 
     return (
         <nav className="top-nav">
-            <div className="top-nav-inner">
+            <motion.div
+                className="top-nav-inner"
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
                 <div className="nav-logo">
                     <span>🧠</span>
                     <span>AttentionOS</span>
@@ -40,12 +46,15 @@ function TopNav() {
                     </li>
                 </ul>
 
-                <div className="nav-actions">
-                    <button className="theme-toggle" onClick={toggleTheme}>
-                        {theme === 'light' ? '🌙' : '☀️'}
-                    </button>
-                </div>
-            </div>
+                <motion.button
+                    className="theme-toggle"
+                    onClick={toggleTheme}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                >
+                    {theme === 'light' ? '🌙' : '☀️'}
+                </motion.button>
+            </motion.div>
         </nav>
     )
 }

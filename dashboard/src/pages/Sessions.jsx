@@ -1,19 +1,15 @@
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { fetchSessions } from '../utils/api'
 import { formatTime, getFocusColor } from '../utils/helpers'
-import Modal from '../components/Modal'
-import LoadingSkeleton from '../components/LoadingSkeleton'
+import EmptyState from '../components/EmptyState'
 
 function Sessions() {
     const [sessions, setSessions] = useState([])
     const [filteredSessions, setFilteredSessions] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
-    const [sortKey, setSortKey] = useState('id')
-    const [sortOrder, setSortOrder] = useState('desc')
-    const [currentPage, setCurrentPage] = useState(1)
     const [selectedSession, setSelectedSession] = useState(null)
-    const itemsPerPage = 10
 
     useEffect(() => {
         fetchSessions()
@@ -29,7 +25,7 @@ function Sessions() {
     }, [])
 
     useEffect(() => {
-        let filtered = [...sessions]
+        let filtered = sessions
 
         if (searchTerm) {
             filtered = filtered.filter(s =>
@@ -38,70 +34,65 @@ function Sessions() {
             )
         }
 
-        filtered.sort((a, b) => {
-            const aVal = a[sortKey]
-            const bVal = b[sortKey]
-
-            if (sortOrder === 'asc') {
-                return aVal > bVal ? 1 : -1
-            } else {
-                return aVal < bVal ? 1 : -1
-            }
-        })
-
         setFilteredSessions(filtered)
-        setCurrentPage(1)
-    }, [searchTerm, sortKey, sortOrder, sessions])
-
-    const handleSort = (key) => {
-        if (sortKey === key) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-        } else {
-            setSortKey(key)
-            setSortOrder('desc')
-        }
-    }
+    }, [searchTerm, sessions])
 
     if (loading) {
         return (
-            <div>
-                <div className="page-header">
-                    <h1 className="page-title">Sessions</h1>
-                    <p className="page-subtitle">Your work sessions</p>
-                </div>
-                <LoadingSkeleton type="table" />
-            </div>
+            <motion.div
+                className="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+            >
+                <div className="loading-spinner" />
+                <p>Loading sessions...</p>
+            </motion.div>
         )
     }
 
     if (sessions.length === 0) {
         return (
-            <div>
-                <div className="page-header">
-                    <h1 className="page-title">Sessions</h1>
-                    <p className="page-subtitle">Your work sessions</p>
-                </div>
-                <div className="empty-state">
-                    <div className="empty-state-icon">📋</div>
-                    <div className="empty-state-text">No sessions recorded yet</div>
-                </div>
-            </div>
+            <EmptyState
+                icon="📋"
+                title="No sessions recorded yet"
+                description="Your completed sessions will appear here. Start your first session to begin building your focus history."
+            />
         )
     }
 
-    const totalPages = Math.ceil(filteredSessions.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const paginatedSessions = filteredSessions.slice(startIndex, startIndex + itemsPerPage)
+    const formatSessionDate = (dateStr) => {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    }
 
     return (
-        <div>
-            <div className="page-header">
-                <h1 className="page-title">Sessions</h1>
-                <p className="page-subtitle">Your work sessions</p>
-            </div>
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+            >
+                <motion.div
+                    className="page-header"
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                >
+                    <div className="page-eyebrow">Session History</div>
+                    <h1 className="page-title">Sessions</h1>
+                    <p className="page-subtitle">Review your past work sessions</p>
+                </motion.div>
 
-            <div className="table-container">
-                <div className="table-actions">
+                <motion.div
+                    className="search-bar"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                >
                     <input
                         type="text"
                         placeholder="Search sessions..."
@@ -109,115 +100,124 @@ function Sessions() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                </motion.div>
+
+                <div className="sessions-grid">
+                    {filteredSessions.map((session, index) => (
+                        <motion.div
+                            key={session.id}
+                            className="session-card"
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: index * 0.05, duration: 0.4 }}
+                            whileHover={{ y: -4, scale: 1.01 }}
+                            onClick={() => setSelectedSession(session)}
+                        >
+                            <div className="session-header">
+                                <div className="session-date">
+                                    Session #{session.id} • {formatSessionDate(session.start_time)}
+                                </div>
+                                <div className="session-score">
+                                    {session.focus_score.toFixed(0)}%
+                                </div>
+                            </div>
+
+                            <div className="session-stats">
+                                <div>
+                                    <div className="session-stat-value">{formatTime(session.total_active_seconds)}</div>
+                                    <div className="session-stat-label">Active</div>
+                                </div>
+                                <div>
+                                    <div className="session-stat-value">{formatTime(session.total_idle_seconds)}</div>
+                                    <div className="session-stat-label">Idle</div>
+                                </div>
+                                <div>
+                                    <div className="session-stat-value">{session.app_switches}</div>
+                                    <div className="session-stat-label">Switches</div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
                 </div>
 
-                <table>
-                    <thead>
-                        <tr>
-                            <th className="sortable" onClick={() => handleSort('id')}>
-                                ID {sortKey === 'id' && (sortOrder === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="sortable" onClick={() => handleSort('start_time')}>
-                                Start {sortKey === 'start_time' && (sortOrder === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="sortable" onClick={() => handleSort('end_time')}>
-                                End {sortKey === 'end_time' && (sortOrder === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="sortable" onClick={() => handleSort('total_active_seconds')}>
-                                Active {sortKey === 'total_active_seconds' && (sortOrder === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="sortable" onClick={() => handleSort('total_idle_seconds')}>
-                                Idle {sortKey === 'total_idle_seconds' && (sortOrder === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="sortable" onClick={() => handleSort('app_switches')}>
-                                Switches {sortKey === 'app_switches' && (sortOrder === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="sortable" onClick={() => handleSort('focus_score')}>
-                                Focus {sortKey === 'focus_score' && (sortOrder === 'asc' ? '↑' : '↓')}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {paginatedSessions.map(session => (
-                            <tr key={session.id} onClick={() => setSelectedSession(session)}>
-                                <td>{session.id}</td>
-                                <td>{session.start_time}</td>
-                                <td>{session.end_time}</td>
-                                <td>{formatTime(session.total_active_seconds)}</td>
-                                <td>{formatTime(session.total_idle_seconds)}</td>
-                                <td>{session.app_switches}</td>
-                                <td>
-                                    <strong style={{ color: getFocusColor(session.focus_score) }}>
-                                        {session.focus_score.toFixed(1)}%
-                                    </strong>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                {totalPages > 1 && (
-                    <div className="pagination">
-                        <div className="pagination-info">
-                            {startIndex + 1}—{Math.min(startIndex + itemsPerPage, filteredSessions.length)} of {filteredSessions.length}
-                        </div>
-                        <div className="pagination-buttons">
-                            <button
-                                className="pagination-button"
-                                onClick={() => setCurrentPage(p => p - 1)}
-                                disabled={currentPage === 1}
+                {/* Modal */}
+                <AnimatePresence>
+                    {selectedSession && (
+                        <motion.div
+                            className="modal-overlay"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedSession(null)}
+                        >
+                            <motion.div
+                                className="modal"
+                                initial={{ scale: 0.95, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.95, y: 20 }}
+                                onClick={e => e.stopPropagation()}
                             >
-                                Previous
-                            </button>
-                            <button
-                                className="pagination-button"
-                                onClick={() => setCurrentPage(p => p + 1)}
-                                disabled={currentPage === totalPages}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
+                                <div className="modal-header">
+                                    <div>
+                                        <div className="modal-title">Session #{selectedSession.id}</div>
+                                        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+                                            {formatSessionDate(selectedSession.start_time)}
+                                        </div>
+                                    </div>
+                                    <button className="modal-close" onClick={() => setSelectedSession(null)}>
+                                        ×
+                                    </button>
+                                </div>
 
-            <Modal
-                isOpen={selectedSession !== null}
-                onClose={() => setSelectedSession(null)}
-                title={`Session #${selectedSession?.id}`}
-            >
-                {selectedSession && (
-                    <div className="modal-stats">
-                        <div className="modal-stat">
-                            <div className="modal-stat-label">Start</div>
-                            <div className="modal-stat-value" style={{ fontSize: '14px' }}>{selectedSession.start_time}</div>
-                        </div>
-                        <div className="modal-stat">
-                            <div className="modal-stat-label">End</div>
-                            <div className="modal-stat-value" style={{ fontSize: '14px' }}>{selectedSession.end_time}</div>
-                        </div>
-                        <div className="modal-stat">
-                            <div className="modal-stat-label">Active</div>
-                            <div className="modal-stat-value">{formatTime(selectedSession.total_active_seconds)}</div>
-                        </div>
-                        <div className="modal-stat">
-                            <div className="modal-stat-label">Idle</div>
-                            <div className="modal-stat-value">{formatTime(selectedSession.total_idle_seconds)}</div>
-                        </div>
-                        <div className="modal-stat">
-                            <div className="modal-stat-label">Switches</div>
-                            <div className="modal-stat-value">{selectedSession.app_switches}</div>
-                        </div>
-                        <div className="modal-stat">
-                            <div className="modal-stat-label">Focus</div>
-                            <div className="modal-stat-value" style={{ color: getFocusColor(selectedSession.focus_score) }}>
-                                {selectedSession.focus_score.toFixed(1)}%
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </Modal>
-        </div>
+                                <div className="modal-body">
+                                    <div style={{
+                                        textAlign: 'center',
+                                        marginBottom: '2rem',
+                                        padding: '2rem',
+                                        background: 'var(--color-accent-subtle)',
+                                        borderRadius: 'var(--radius-lg)'
+                                    }}>
+                                        <div style={{
+                                            fontSize: '4rem',
+                                            fontWeight: 800,
+                                            background: 'var(--gradient-hero)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent'
+                                        }}>
+                                            {selectedSession.focus_score.toFixed(0)}%
+                                        </div>
+                                        <div style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
+                                            Focus Score
+                                        </div>
+                                    </div>
+
+                                    <div className="modal-stats">
+                                        <div className="modal-stat">
+                                            <div className="modal-stat-value">{formatTime(selectedSession.total_active_seconds)}</div>
+                                            <div className="modal-stat-label">Active Time</div>
+                                        </div>
+                                        <div className="modal-stat">
+                                            <div className="modal-stat-value">{formatTime(selectedSession.total_idle_seconds)}</div>
+                                            <div className="modal-stat-label">Idle Time</div>
+                                        </div>
+                                        <div className="modal-stat">
+                                            <div className="modal-stat-value">{selectedSession.app_switches}</div>
+                                            <div className="modal-stat-label">App Switches</div>
+                                        </div>
+                                        <div className="modal-stat">
+                                            <div className="modal-stat-value">
+                                                {Math.round((selectedSession.total_active_seconds / (selectedSession.total_active_seconds + selectedSession.total_idle_seconds)) * 100)}%
+                                            </div>
+                                            <div className="modal-stat-label">Efficiency</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+        </AnimatePresence>
     )
 }
 

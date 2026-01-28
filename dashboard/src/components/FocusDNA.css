@@ -1,0 +1,165 @@
+/* Focus DNA Styles */
+
+.focus-dna-container {
+    background: var(--glass-bg);
+    border: var(--border-glass);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(var(--glass-blur));
+}
+
+.focus-dna-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+
+.dna-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-accent);
+    margin-bottom: 0.5rem;
+}
+
+.dna-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.02em;
+}
+
+.dna-subtitle {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* DNA Visualization */
+.dna-visualization {
+    position: relative;
+}
+
+.dna-strands {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 2rem 0;
+    min-height: 300px;
+}
+
+.dna-strand-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    min-width: 60px;
+    position: relative;
+}
+
+.dna-helix {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    min-height: 200px;
+    align-items: flex-end;
+}
+
+.dna-strand {
+    width: 24px;
+    border-radius: 12px 12px 0 0;
+    position: relative;
+    transform-origin: bottom;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s;
+}
+
+.dna-strand:hover {
+    transform: scaleY(1.05);
+    filter: brightness(1.2);
+}
+
+.dna-strand-focus {
+    z-index: 2;
+}
+
+.dna-strand-activity {
+    z-index: 1;
+    opacity: 0.7;
+}
+
+/* Connection lines between days */
+.dna-connector {
+    position: absolute;
+    right: -2rem;
+    top: 50%;
+    width: 2rem;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), transparent);
+    transform: translateY(-50%);
+}
+
+/* Labels */
+.dna-label {
+    text-align: center;
+}
+
+.dna-day {
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.dna-score {
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+    font-weight: 700;
+}
+
+/* Legend */
+.dna-legend {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: var(--border-subtle);
+}
+
+.dna-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+}
+
+.dna-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dna-strands {
+        gap: 1rem;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding-bottom: 1rem;
+    }
+
+    .dna-strand-group {
+        min-width: 50px;
+    }
+
+    .dna-legend {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+}
