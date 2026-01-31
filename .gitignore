@@ -63,3 +63,4 @@ dashboard/node_modules/
 # Logs
 *.log
 logs/
+backend/.env

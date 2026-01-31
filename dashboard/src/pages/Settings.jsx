@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useTheme } from '../context/ThemeContext'
 
@@ -7,6 +7,17 @@ function Settings() {
     const [animations, setAnimations] = useState(true)
     const [generating, setGenerating] = useState(false)
     const [message, setMessage] = useState(null)
+
+    // AI Coaching toggle - persisted to localStorage
+    const [aiCoachEnabled, setAiCoachEnabled] = useState(() => {
+        const saved = localStorage.getItem('attentionos_ai_coach')
+        return saved !== null ? JSON.parse(saved) : true
+    })
+
+    // Save AI coaching preference
+    useEffect(() => {
+        localStorage.setItem('attentionos_ai_coach', JSON.stringify(aiCoachEnabled))
+    }, [aiCoachEnabled])
 
     const generateDemoData = async () => {
         setGenerating(true)
@@ -97,6 +108,56 @@ function Settings() {
                 </div>
             </motion.div>
 
+            {/* AI Features Section */}
+            <motion.div
+                className="settings-section"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.15 }}
+                style={{
+                    background: 'rgba(139, 92, 246, 0.05)',
+                    borderColor: 'rgba(139, 92, 246, 0.3)'
+                }}
+            >
+                <h3 style={{
+                    color: '#a78bfa',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                }}>
+                    🧠 AI Features
+                </h3>
+
+                <div className="setting-item">
+                    <div className="setting-info">
+                        <div className="setting-label">AI Coaching</div>
+                        <div className="setting-description">
+                            Get AI-powered insights and suggestions after each session.
+                            Powered by Gemini Pro.
+                        </div>
+                    </div>
+                    <label className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={aiCoachEnabled}
+                            onChange={(e) => setAiCoachEnabled(e.target.checked)}
+                        />
+                        <span className="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div className="setting-item" style={{ borderBottom: 'none' }}>
+                    <div className="setting-info">
+                        <div className="setting-label" style={{
+                            fontSize: '0.85rem',
+                            color: 'rgba(255,255,255,0.5)'
+                        }}>
+                            Note: AI features work offline with cached responses when API is unavailable
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+
             <motion.div
                 className="settings-section"
                 initial={{ y: 20, opacity: 0 }}
@@ -109,7 +170,7 @@ function Settings() {
                     <div className="setting-info">
                         <div className="setting-label">AttentionOS</div>
                         <div className="setting-description">
-                            Version 2.0.0 — Premium Edition
+                            Version 2.1.0 — AI-Powered Edition
                         </div>
                     </div>
                 </div>
@@ -231,3 +292,22 @@ function Settings() {
 }
 
 export default Settings
+
+// Export the AI coach setting reader for other components
+export function useAICoachEnabled() {
+    const [enabled, setEnabled] = useState(() => {
+        const saved = localStorage.getItem('attentionos_ai_coach')
+        return saved !== null ? JSON.parse(saved) : true
+    })
+
+    useEffect(() => {
+        const handleStorage = () => {
+            const saved = localStorage.getItem('attentionos_ai_coach')
+            setEnabled(saved !== null ? JSON.parse(saved) : true)
+        }
+        window.addEventListener('storage', handleStorage)
+        return () => window.removeEventListener('storage', handleStorage)
+    }, [])
+
+    return enabled
+}

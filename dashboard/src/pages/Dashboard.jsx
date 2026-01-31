@@ -7,6 +7,7 @@ import FocusPulse from '../components/FocusPulse'
 import SessionWrap from '../components/SessionWrap'
 import EmptyState from '../components/EmptyState'
 import AchievementShelf from '../components/AchievementShelf'
+import AIBubble from '../components/AIBubble'
 
 // Animated counter component
 function AnimatedNumber({ value, suffix = '' }) {
@@ -334,6 +335,9 @@ function Dashboard() {
                 show={showWrap}
                 onClose={() => setShowWrap(false)}
             />
+
+            {/* Floating AI Assistant Bubble */}
+            <AIBubble />
         </AnimatePresence>
     )
 }
