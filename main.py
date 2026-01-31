@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """
-Minimal macOS active application tracker with idle detection.
-Tracks app sessions with start_time, end_time, and duration.
-Detects idle state when no keyboard/mouse input for > 60 seconds.
+AttentionOS Agent - 4-Phase Activity Tracking System for macOS.
+
+PHASE 1: Core Tracking - App sessions with idle detection
+PHASE 2: Timeline Logging - 30-second interval logging
+PHASE 3: Window Metadata - Capture window titles and bundle IDs
+PHASE 4: HTTP Interface - FastAPI server for external access
 """
 
 import time
 import sqlite3
 import os
 from datetime import datetime
+from threading import Lock, Thread
 from AppKit import NSWorkspace
+from Quartz import CGWindowListCopyWindowInfo, kCGWindowListOptionOnScreenOnly, kCGNullWindowID
 from pynput import mouse, keyboard
-from threading import Lock
 
 
 # Database path configuration
@@ -22,6 +26,10 @@ DB_PATH = os.path.join(BASE_DIR, "data", "attentionos.db")
 last_activity_time = datetime.now()
 activity_lock = Lock()
 IDLE_THRESHOLD_SECONDS = 60
+
+# PHASE 2: Timeline logging
+last_timeline_log = datetime.now()
+TIMELINE_INTERVAL_SECONDS = 30
 
 
 def on_activity():
@@ -65,13 +73,16 @@ def init_database():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
+    # PHASE 1: Activity logs (extended with window metadata)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS activity_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             app_name TEXT NOT NULL,
             start_time TEXT NOT NULL,
             end_time TEXT,
-            duration_seconds INTEGER
+            duration_seconds INTEGER,
+            window_title TEXT,
+            bundle_id TEXT
         )
     ''')
     
@@ -96,20 +107,43 @@ def init_database():
         )
     ''')
     
+    # PHASE 2: Timeline logging (every 30 seconds)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS timeline (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            app_name TEXT NOT NULL,
+            is_idle INTEGER NOT NULL,
+            window_title TEXT,
+            bundle_id TEXT
+        )
+    ''')
+    
+    # Add columns to existing tables if they don't exist (for upgrades)
+    try:
+        cursor.execute('ALTER TABLE activity_logs ADD COLUMN window_title TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE activity_logs ADD COLUMN bundle_id TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
     conn.commit()
     conn.close()
     print(f"Database initialized: {DB_PATH}\n")
 
 
-def start_new_session(app_name, start_time):
-    """Insert a new activity session."""
+def start_new_session(app_name, start_time, window_title='', bundle_id=''):
+    """Insert a new activity session with window metadata."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
     cursor.execute('''
-        INSERT INTO activity_logs (app_name, start_time, end_time, duration_seconds)
-        VALUES (?, ?, NULL, 0)
-    ''', (app_name, start_time))
+        INSERT INTO activity_logs (app_name, start_time, end_time, duration_seconds, window_title, bundle_id)
+        VALUES (?, ?, NULL, 0, ?, ?)
+    ''', (app_name, start_time, window_title, bundle_id))
     
     record_id = cursor.lastrowid
     conn.commit()
@@ -128,6 +162,22 @@ def update_session(record_id, end_time, duration_seconds):
         SET end_time = ?, duration_seconds = ?
         WHERE id = ?
     ''', (end_time, duration_seconds, record_id))
+    
+    conn.commit()
+    conn.close()
+
+
+def log_timeline_entry(timestamp, app_name, is_idle, window_title='', bundle_id=''):
+    """
+    PHASE 2: Log a timeline entry (called every 30 seconds).
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT INTO timeline (timestamp, app_name, is_idle, window_title, bundle_id)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (timestamp, app_name, is_idle, window_title, bundle_id))
     
     conn.commit()
     conn.close()
@@ -152,6 +202,53 @@ def get_active_app():
     workspace = NSWorkspace.sharedWorkspace()
     active_app = workspace.activeApplication()
     return active_app['NSApplicationName']
+
+
+def get_bundle_id():
+    """Get the bundle identifier of the currently active application."""
+    try:
+        workspace = NSWorkspace.sharedWorkspace()
+        active_app = workspace.activeApplication()
+        return active_app.get('NSApplicationBundleIdentifier', '')
+    except Exception as e:
+        print(f"Warning: Could not get bundle ID: {e}")
+        return ''
+
+
+def get_window_title():
+    """
+    Get the title of the frontmost window using Quartz.
+    PHASE 3: Window metadata capture.
+    """
+    try:
+        # Get list of all on-screen windows
+        window_list = CGWindowListCopyWindowInfo(
+            kCGWindowListOptionOnScreenOnly,
+            kCGNullWindowID
+        )
+        
+        # Find the frontmost window (layer 0, not minimized)
+        for window in window_list:
+            if window.get('kCGWindowLayer', -1) == 0:
+                window_title = window.get('kCGWindowName', '')
+                if window_title:
+                    return window_title
+        
+        return ''
+    except Exception as e:
+        print(f"Warning: Could not get window title: {e}")
+        return ''
+
+
+def get_app_metadata():
+    """
+    Get comprehensive metadata about the currently active app and window.
+    Returns: (app_name, window_title, bundle_id)
+    """
+    app_name = get_active_app()
+    window_title = get_window_title()
+    bundle_id = get_bundle_id()
+    return app_name, window_title, bundle_id
 
 
 def save_session_summary(session_start, session_end):
@@ -211,6 +308,18 @@ def save_session_summary(session_start, session_end):
     }
 
 
+def start_api_server():
+    """
+    PHASE 4: Start FastAPI server in background thread.
+    Runs on port 8001.
+    """
+    import uvicorn
+    from api import app
+    
+    print("[API] Starting FastAPI server on http://localhost:8001")
+    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="error")
+
+
 def main():
     """Main loop that tracks app sessions and idle state."""
     init_database()
@@ -230,6 +339,9 @@ def main():
     last_app = None
     session_start_time = None
     
+    # PHASE 2: Timeline logging variables
+    global last_timeline_log
+    
     try:
         while True:
             current_time = datetime.now()
@@ -238,8 +350,19 @@ def main():
             # Determine current state (idle or active app)
             if is_idle():
                 current_state = "IDLE"
+                window_title = ''
+                bundle_id = ''
             else:
-                current_state = get_active_app()
+                # PHASE 3: Get app metadata including window title
+                current_state, window_title, bundle_id = get_app_metadata()
+            
+            # PHASE 2: Log to timeline every 30 seconds
+            seconds_since_last_log = (current_time - last_timeline_log).total_seconds()
+            if seconds_since_last_log >= TIMELINE_INTERVAL_SECONDS:
+                is_idle_int = 1 if current_state == "IDLE" else 0
+                log_timeline_entry(timestamp_str, current_state, is_idle_int, window_title, bundle_id)
+                last_timeline_log = current_time
+                print(f"  [Timeline] Logged: {current_state} (idle={is_idle_int})")
             
             if current_state != last_app:
                 # State changed - close previous session and start new one
@@ -252,9 +375,9 @@ def main():
                 # Log the app switch
                 log_app_switch(last_app, current_state, timestamp_str)
                 
-                # Start new session
+                # Start new session with window metadata
                 session_start_time = current_time
-                current_record_id = start_new_session(current_state, timestamp_str)
+                current_record_id = start_new_session(current_state, timestamp_str, window_title, bundle_id)
                 last_app = current_state
                 
                 if current_state == "IDLE":
@@ -299,4 +422,22 @@ def main():
 
 
 if __name__ == "__main__":
+    print("="*60)
+    print("AttentionOS Agent - 4-Phase Tracking System")
+    print("="*60)
+    print("PHASE 1: Core Tracking (app sessions + idle detection)")
+    print("PHASE 2: Timeline Logging (every 30 seconds)")
+    print("PHASE 3: Window Metadata (titles + bundle IDs)")
+    print("PHASE 4: HTTP API (http://localhost:8001)")
+    print("="*60)
+    print()
+    
+    # PHASE 4: Start API server in background thread
+    api_thread = Thread(target=start_api_server, daemon=True)
+    api_thread.start()
+    
+    # Small delay to let API server start
+    time.sleep(2)
+    
+    # Start main tracking agent (blocks until Ctrl+C)
     main()
